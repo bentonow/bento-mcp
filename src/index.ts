@@ -710,6 +710,120 @@ server.tool(
 );
 
 // =============================================================================
+// SEQUENCE & WORKFLOW TOOLS
+// =============================================================================
+
+server.tool(
+  "bento_list_sequences",
+  "List all email sequences in your Bento account. Returns each sequence with its name, ID, and email templates (id, subject, stats). Use this to discover what automated email sequences exist and get template IDs for reading/editing content.",
+  {},
+  async () => {
+    try {
+      const bento = getBentoClient();
+      const sequences = await bento.V1.Sequences.getSequences();
+
+      return {
+        content: [{ type: "text", text: formatResponse(sequences) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: handleError(error) }],
+      };
+    }
+  }
+);
+
+server.tool(
+  "bento_list_workflows",
+  "List all workflows (automation flows) in your Bento account. Returns each workflow with its name, ID, and email templates (id, subject, stats). Use this to discover what automated workflows exist and get template IDs for reading/editing content.",
+  {},
+  async () => {
+    try {
+      const bento = getBentoClient();
+      const workflows = await bento.V1.Workflows.getWorkflows();
+
+      return {
+        content: [{ type: "text", text: formatResponse(workflows) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: handleError(error) }],
+      };
+    }
+  }
+);
+
+server.tool(
+  "bento_get_email_template",
+  "Get the full content of an email template by ID. Returns the template's name, subject, HTML content, and stats. Use this after listing sequences/workflows to read the actual email content for review or editing.",
+  {
+    id: z
+      .number()
+      .describe(
+        "The email template ID (numeric ID from the email_templates array in sequences or workflows)"
+      ),
+  },
+  async ({ id }) => {
+    try {
+      const bento = getBentoClient();
+      const template = await bento.V1.EmailTemplates.getEmailTemplate({ id });
+
+      return {
+        content: [{ type: "text", text: formatResponse(template) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: handleError(error) }],
+      };
+    }
+  }
+);
+
+server.tool(
+  "bento_update_email_template",
+  "Update an email template's subject line and/or HTML content. Use this to improve email copy, fix typos, update designs, or make any changes to emails in sequences or workflows. Changes take effect immediately for future sends.",
+  {
+    id: z.number().describe("The email template ID to update"),
+    subject: z
+      .string()
+      .optional()
+      .describe("New subject line for the email (can include {{ liquid }} personalization tags)"),
+    html: z
+      .string()
+      .optional()
+      .describe(
+        "New HTML content for the email body (can include {{ liquid }} personalization tags). Must include {{ visitor.unsubscribe_url }} for compliance."
+      ),
+  },
+  async ({ id, subject, html }) => {
+    try {
+      if (!subject && !html) {
+        return {
+          content: [
+            { type: "text", text: "Either subject or html (or both) is required to update" },
+          ],
+        };
+      }
+
+      const bento = getBentoClient();
+      const template = await bento.V1.EmailTemplates.updateEmailTemplate({
+        id,
+        subject,
+        html,
+      });
+
+      return {
+        content: [{ type: "text", text: formatResponse(template) }],
+      };
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: handleError(error) }],
+      };
+    }
+  }
+);
+
+// =============================================================================
 // BATCH TOOLS
 // =============================================================================
 
