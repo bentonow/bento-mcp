@@ -4,9 +4,9 @@ A Model Context Protocol (MCP) server for [Bento](https://bentonow.com) - the em
 
 ## Features
 
-- **Subscriber Management** - Import, update, and lookup subscribers
+- **Subscriber Management** - Import, update, and lookup subscribers with full custom field support
 - **Tagging** - Create and manage tags
-- **Event Tracking** - Track custom events
+- **Event Tracking** - Track custom events that can trigger automations
 - **Field Management** - Create and list custom fields
 - **Broadcasts** - Create and list email campaigns
 - **Automations** - View sequences and workflows
@@ -106,14 +106,14 @@ Add to your Cursor MCP settings:
 
 | Tool | Description |
 |------|-------------|
-| `bento_get_subscriber` | Get subscriber details by email or UUID |
-| `bento_batch_import_subscribers` | Import or update subscribers with fields and tags |
+| `bento_get_subscriber` | Look up subscriber details by email or UUID |
+| `bento_batch_import_subscribers` | Import or update up to 1000 subscribers with custom fields and tags |
 
 ### Tags
 
 | Tool | Description |
 |------|-------------|
-| `bento_list_tags` | List all tags |
+| `bento_list_tags` | List all tags in your account |
 | `bento_create_tag` | Create a new tag |
 
 ### Fields
@@ -127,26 +127,26 @@ Add to your Cursor MCP settings:
 
 | Tool | Description |
 |------|-------------|
-| `bento_track_event` | Track a custom event for a subscriber |
+| `bento_track_event` | Track a custom event for a subscriber (can trigger automations) |
 
 ### Statistics
 
 | Tool | Description |
 |------|-------------|
-| `bento_get_site_stats` | Get site statistics |
+| `bento_get_site_stats` | Get site statistics including subscriber and broadcast counts |
 
 ### Broadcasts
 
 | Tool | Description |
 |------|-------------|
-| `bento_list_broadcasts` | List all broadcasts |
+| `bento_list_broadcasts` | List all broadcasts/campaigns |
 | `bento_create_broadcast` | Create a draft broadcast |
 
 ### Automations
 
 | Tool | Description |
 |------|-------------|
-| `bento_list_automations` | List sequences and/or workflows |
+| `bento_list_automations` | List sequences and/or workflows with their templates |
 
 ### Email Templates
 
@@ -165,6 +165,26 @@ Once configured, you can ask your AI assistant things like:
 - "What are all the tags in my Bento account?"
 - "Create a new broadcast for the spring sale"
 - "List all my email sequences"
+- "Track a 'feature_used' event for user@example.com"
+
+## Response Format
+
+All tool responses are formatted to be informative for both humans and LLMs:
+
+- **Success responses** include context about the operation performed and structured data
+- **Error responses** include the `isError` flag and helpful error messages with suggested fixes
+- **Empty results** are clearly indicated (e.g., "No items found")
+- **Batch operations** report both successful and total counts
+
+## Error Handling
+
+The server provides helpful error messages for common issues:
+
+- **Missing credentials**: Clear message about which environment variables are missing
+- **Authentication failures**: Guidance to check API keys
+- **Rate limiting**: Information about waiting before retrying
+- **Not found errors**: Clear indication when resources don't exist
+- **API errors**: Helpful messages for temporary service issues
 
 ## Development
 
@@ -178,6 +198,12 @@ npm install
 
 # Build
 npm run build
+
+# Lint
+npm run lint
+
+# Format
+npm run format
 
 # Run locally
 BENTO_PUBLISHABLE_KEY=xxx BENTO_SECRET_KEY=xxx BENTO_SITE_UUID=xxx npm start
