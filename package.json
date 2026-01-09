@@ -9,9 +9,12 @@
   "bin": {
     "bento-mcp": "./build/index.js"
   },
-  "files": ["build"],
+  "files": [
+    "build"
+  ],
   "scripts": {
-    "build": "NODE_OPTIONS='--max-old-space-size=8192' tsc && chmod +x build/index.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=build/index.js --packages=external && chmod +x build/index.js",
+    "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
     "start": "node build/index.js",
     "lint": "biome lint .",
@@ -48,6 +51,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.10.0",
+    "esbuild": "^0.27.2",
     "typescript": "^5.7.0"
   }
 }
