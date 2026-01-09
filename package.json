@@ -1,6 +1,6 @@
 {
   "name": "@bentonow/bento-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for Bento - Email marketing and analytics tools for AI assistants",
   "author": "Bento <support@bentonow.com>",
   "license": "MIT",
