@@ -1,13 +1,13 @@
 {
   "name": "@bentonow/bento-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MCP server for Bento - Email marketing and analytics tools for AI assistants",
   "author": "Bento <support@bentonow.com>",
   "license": "MIT",
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "bento-mcp": "./build/index.js"
+    "bento-mcp": "build/index.js"
   },
   "files": [
     "build"
@@ -44,7 +44,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@bentonow/bento-node-sdk": "^1.0.4",
+    "@bentonow/bento-node-sdk": "^1.0.5",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "zod": "^3.24.0"
   },
