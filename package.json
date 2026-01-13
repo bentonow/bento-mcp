@@ -1,17 +1,20 @@
 {
   "name": "@bentonow/bento-mcp",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "MCP server for Bento - Email marketing and analytics tools for AI assistants",
   "author": "Bento <support@bentonow.com>",
   "license": "MIT",
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "bento-mcp": "./build/index.js"
+    "bento-mcp": "build/index.js"
   },
-  "files": ["build"],
+  "files": [
+    "build"
+  ],
   "scripts": {
-    "build": "tsc && chmod +x build/index.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --format=esm --outfile=build/index.js --packages=external && chmod +x build/index.js",
+    "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
     "start": "node build/index.js",
     "lint": "biome lint .",
@@ -41,13 +44,14 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@bentonow/bento-node-sdk": "^1.0.4",
+    "@bentonow/bento-node-sdk": "^1.0.5",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.10.0",
+    "esbuild": "^0.27.2",
     "typescript": "^5.7.0"
   }
 }
