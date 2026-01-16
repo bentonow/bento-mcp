@@ -5,6 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { Analytics } from "@bentonow/bento-node-sdk";
 import { createRequire } from "node:module";
+import { runSetup, parseSetupArgs } from "./setup/index.js";
 
 // Read version from package.json
 const require = createRequire(import.meta.url);
@@ -14,13 +15,10 @@ const VERSION: string = packageJson.version;
 // Check for CLI commands before starting MCP server
 const args = process.argv.slice(2);
 if (args[0] === "setup") {
-  // Dynamic import to avoid loading setup code when running as MCP server
-  import("./setup/index.js").then(({ runSetup, parseSetupArgs }) => {
-    const options = parseSetupArgs(args.slice(1));
-    runSetup(options).catch((err) => {
-      console.error("Setup failed:", err);
-      process.exit(1);
-    });
+  const options = parseSetupArgs(args.slice(1));
+  runSetup(options).catch((err) => {
+    console.error("Setup failed:", err);
+    process.exit(1);
   });
 } else if (args[0] === "--version" || args[0] === "-v") {
   console.log(`bento-mcp v${VERSION}`);
