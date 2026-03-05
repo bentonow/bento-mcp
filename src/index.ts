@@ -647,7 +647,7 @@ Example purchase event details:
         .describe("Email content (HTML, plain text, or markdown)"),
       type: z
         .enum(["plain", "html", "markdown"])
-        .default("html")
+        .default("plain")
         .describe("Content type"),
       fromName: z.string().min(1).describe("Sender name"),
       fromEmail: z
