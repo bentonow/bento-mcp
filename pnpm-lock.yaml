@@ -19,8 +19,8 @@ importers:
   .:
     dependencies:
       '@bentonow/bento-node-sdk':
-        specifier: ^1.0.7
-        version: 1.0.8
+        specifier: ^1.1.0
+        version: 1.1.0
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
         version: 1.26.0(zod@3.25.76)
@@ -43,8 +43,8 @@ importers:
 
 packages:
 
-  '@bentonow/bento-node-sdk@1.0.8':
-    resolution: {integrity: sha512-9fgGiSWLrlB6lpfqUNLp3i/anwhFDPa8ls0h6qeTckHIgLRnw1hamXLZ9xNiflSOhKwIfouQPw+u3Uo9AwhWeQ==}
+  '@bentonow/bento-node-sdk@1.1.0':
+    resolution: {integrity: sha512-i0pfRgMnGid+o0NkMAmG30KOJnXEMSg6r3o+NT0IVCx7GkuI17d21YeJjvlA/hNhNz+p3rhG0fqh9nYSJVUuIw==}
     engines: {node: '>=18'}
 
   '@biomejs/biome@1.9.4':
@@ -644,7 +644,7 @@ packages:
 
 snapshots:
 
-  '@bentonow/bento-node-sdk@1.0.8': {}
+  '@bentonow/bento-node-sdk@1.1.0': {}
 
   '@biomejs/biome@1.9.4':
     optionalDependencies:
