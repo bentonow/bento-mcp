@@ -598,6 +598,66 @@ Example purchase event details:
   // STATISTICS TOOLS
   // =============================================================================
 
+  const AdsStatsDimensionSchema = z
+    .enum(["source", "campaign", "medium", "content", "ad"])
+    .default("source");
+
+  const AdsStatsRevenueModeSchema = z
+    .enum(["all_revenue", "first_revenue", "subscriptions"])
+    .default("all_revenue");
+
+  type AdsStatsParameters = {
+    dimension?: z.infer<typeof AdsStatsDimensionSchema>;
+    value?: string;
+    startDate?: string;
+    endDate?: string;
+    revenueMode?: z.infer<typeof AdsStatsRevenueModeSchema>;
+  };
+
+  type BentoClientWithAdsStats = Analytics & {
+    V1: Analytics["V1"] & {
+      Stats: Analytics["V1"]["Stats"] & {
+        getAdsStats?: (parameters?: AdsStatsParameters) => Promise<unknown>;
+      };
+    };
+  };
+
+  async function getAdsStats(parameters: AdsStatsParameters): Promise<unknown> {
+    const bento = getBentoClient() as BentoClientWithAdsStats;
+
+    if (typeof bento.V1.Stats.getAdsStats === "function") {
+      return bento.V1.Stats.getAdsStats(parameters);
+    }
+
+    const publishableKey = process.env.BENTO_PUBLISHABLE_KEY as string;
+    const secretKey = process.env.BENTO_SECRET_KEY as string;
+    const siteUuid = process.env.BENTO_SITE_UUID as string;
+    const baseUrl = getApiBaseUrl();
+    const authHeader = Buffer.from(`${publishableKey}:${secretKey}`).toString("base64");
+    const queryParameters = new URLSearchParams({ site_uuid: siteUuid });
+
+    if (parameters.dimension) queryParameters.append("dimension", parameters.dimension);
+    if (parameters.value) queryParameters.append("value", parameters.value);
+    if (parameters.startDate) queryParameters.append("start_date", parameters.startDate);
+    if (parameters.endDate) queryParameters.append("end_date", parameters.endDate);
+    if (parameters.revenueMode) queryParameters.append("revenue_mode", parameters.revenueMode);
+
+    const response = await fetch(`${baseUrl}/stats/ads?${queryParameters.toString()}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${authHeader}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(`[${response.status}] - ${message || response.statusText}`);
+    }
+
+    return response.json();
+  }
+
   server.tool(
     "get_site_stats",
     "Get overall statistics for your Bento site including subscriber counts, broadcast counts, and engagement rates.",
@@ -610,6 +670,65 @@ Example purchase event details:
         return successResponse(stats, "Bento site statistics");
       } catch (error) {
         return errorResponse(error, "get site statistics");
+      }
+    },
+  );
+
+  server.tool(
+    "get_ads_stats",
+    `Get ads attribution statistics for your Bento site. Answers questions like:
+- "How many people came from YouTube last week?"
+- "How many came from Google today?"
+- "How much did we earn from Meta last month?"
+- "How is the summer_2015 campaign doing?"
+
+Returns signups, customers, revenue in cents, chart data, and a ranked breakdown by UTM source, campaign, medium, content, or ad.`,
+    {
+      dimension: AdsStatsDimensionSchema.describe(
+        "Attribution dimension to report on. Use source for YouTube/Google/Meta, campaign for names like summer_2015, or ad for Bento ad IDs.",
+      ),
+      value: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'Exact dimension value to filter to, such as "youtube", "google", "meta", or "summer_2015". Leave blank for top values.',
+        ),
+      startDate: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'Start of the reporting window. Natural language works, such as "today", "3 days ago", "last week", or "last month".',
+        ),
+      endDate: z
+        .string()
+        .min(1)
+        .optional()
+        .describe('End of the reporting window. Defaults to now.'),
+      revenueMode: AdsStatsRevenueModeSchema.describe(
+        "Revenue mode: all revenue, first purchase revenue, or repeat/subscription revenue.",
+      ),
+    },
+    async ({ dimension, value, startDate, endDate, revenueMode }) => {
+      try {
+        const stats = await getAdsStats({
+          dimension,
+          value,
+          startDate,
+          endDate,
+          revenueMode,
+        });
+
+        const scope = value ? `${dimension} "${value}"` : `top ${dimension} values`;
+        const range = [startDate, endDate].filter(Boolean).join(" to ");
+        const context = range
+          ? `Ads attribution stats for ${scope} (${range})`
+          : `Ads attribution stats for ${scope}`;
+
+        return successResponse(stats, context);
+      } catch (error) {
+        return errorResponse(error, "get ads attribution statistics");
       }
     },
   );

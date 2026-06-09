@@ -11,7 +11,7 @@ A Model Context Protocol (MCP) server for [Bento](https://bentonow.com) - the em
 - **Broadcasts** - Create and list email campaigns
 - **Automations** - View sequences and workflows
 - **Email Templates** - Read and update email template content
-- **Statistics** - Get site-level stats
+- **Statistics** - Get site-level stats and ads attribution reports
 
 ## Installation
 
@@ -160,6 +160,7 @@ Add to your Cursor MCP settings (`~/.cursor/mcp.json`):
 | Tool | Description |
 |------|-------------|
 | `bento_get_site_stats` | Get site statistics including subscriber and broadcast counts |
+| `bento_get_ads_stats` | Get ads attribution stats by source, campaign, medium, content, or ad |
 
 ### Broadcasts
 
@@ -196,6 +197,9 @@ Once configured, you can ask your AI assistant things like:
 - "Look up the subscriber john@example.com in Bento"
 - "Import these 5 subscribers with the 'newsletter' tag"
 - "Show me the site statistics from Bento"
+- "How many people came from YouTube last week?"
+- "How much did we earn from Meta last month?"
+- "How is the summer_2015 campaign doing?"
 - "What are all the tags in my Bento account?"
 - "Create a new broadcast for the spring sale"
 - "List all my email sequences"
