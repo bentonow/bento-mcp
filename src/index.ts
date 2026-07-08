@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Analytics } from "@bentonow/bento-node-sdk";
 import { createRequire } from "node:module";
 import { runSetup, parseSetupArgs } from "./setup/index.js";
+import { normalizeAutomationList } from "./automation-output.js";
 import { resolveSequenceId } from "./sequence-resolution.js";
 
 // Read version from package.json
@@ -739,14 +740,58 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
 
   server.tool(
     "list_broadcasts",
-    "List all email broadcasts/campaigns in your Bento account.",
-    {},
-    async () => {
+    "List email broadcasts/campaigns. Defaults to Bento's sent broadcast status unless status is provided.",
+    {
+      page: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe("Page number"),
+      status: z
+        .enum(["sent", "draft", "sending", "scheduled", "paused", "canceled"])
+        .optional()
+        .describe("Broadcast status filter"),
+    },
+    async ({ page, status }) => {
       try {
-        const bento = getBentoClient();
-        const broadcasts = await bento.V1.Broadcasts.getBroadcasts();
+        const publishableKey = process.env.BENTO_PUBLISHABLE_KEY as string;
+        const secretKey = process.env.BENTO_SECRET_KEY as string;
+        const siteUuid = process.env.BENTO_SITE_UUID as string;
+        const baseUrl = getApiBaseUrl();
+        const authHeader = Buffer.from(`${publishableKey}:${secretKey}`).toString("base64");
+        const queryParameters = new URLSearchParams({ site_uuid: siteUuid });
 
-        return successResponse(broadcasts, "Broadcasts in your Bento account");
+        if (page !== undefined) {
+          queryParameters.set("page", String(page));
+        }
+        if (status) {
+          queryParameters.set("status", status);
+        }
+
+        const response = await fetch(`${baseUrl}/fetch/broadcasts?${queryParameters.toString()}`, {
+          method: "GET",
+          headers: {
+            Authorization: `Basic ${authHeader}`,
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const message = await response.text();
+          throw new Error(`[${response.status}] - ${message || response.statusText}`);
+        }
+
+        const broadcasts = (await response.json()) as unknown;
+        const context = [
+          "Broadcasts in your Bento account",
+          status ? `status: ${status}` : null,
+          page ? `page ${page}` : null,
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        return successResponse(broadcasts, context);
       } catch (error) {
         return errorResponse(error, "list broadcasts");
       }
@@ -854,10 +899,16 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
         const results: Record<string, unknown> = {};
 
         if (type === "sequences" || type === "all") {
-          results.sequences = await bento.V1.Sequences.getSequences();
+          results.sequences = normalizeAutomationList(
+            await bento.V1.Sequences.getSequences(),
+            "sequence",
+          );
         }
         if (type === "workflows" || type === "all") {
-          results.workflows = await bento.V1.Workflows.getWorkflows();
+          results.workflows = normalizeAutomationList(
+            await bento.V1.Workflows.getWorkflows(),
+            "workflow",
+          );
         }
 
         const context =
@@ -888,8 +939,9 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
     async ({ page }) => {
       try {
         const bento = getBentoClient();
-        const workflows = await bento.V1.Workflows.getWorkflows(
-          page ? { page } : undefined,
+        const workflows = normalizeAutomationList(
+          await bento.V1.Workflows.getWorkflows(page ? { page } : undefined),
+          "workflow",
         );
 
         const context = page
@@ -917,8 +969,9 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
     async ({ page }) => {
       try {
         const bento = getBentoClient();
-        const sequences = await bento.V1.Sequences.getSequences(
-          page ? { page } : undefined,
+        const sequences = normalizeAutomationList(
+          await bento.V1.Sequences.getSequences(page ? { page } : undefined),
+          "sequence",
         );
 
         const context = page
@@ -940,7 +993,7 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
         .string()
         .min(1)
         .optional()
-        .describe("Sequence ID (prefix_id, e.g. sequence_abc123)"),
+        .describe("Sequence ID from list_sequences"),
       sequenceName: z
         .string()
         .min(1)
@@ -989,15 +1042,6 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
         return validationError("Provide either sequenceId or sequenceName");
       }
 
-      if (
-        normalizedSequenceId &&
-        !/^sequence_[a-zA-Z0-9_-]+$/.test(normalizedSequenceId)
-      ) {
-        return validationError(
-          "sequenceId must be a valid prefix_id (e.g. sequence_abc123)",
-        );
-      }
-
       if ((delayInterval && !delayIntervalCount) || (!delayInterval && delayIntervalCount)) {
         return validationError(
           "delayInterval and delayIntervalCount must be provided together",
@@ -1032,12 +1076,14 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
         const resolvedSequenceId = await resolveSequenceId({
           sequenceId: normalizedSequenceId,
           sequenceName: normalizedSequenceName,
-          getSequences: ({ page }) => bento.V1.Sequences.getSequences({ page }),
+          getSequences: () => bento.V1.Sequences.getSequences(),
         });
 
         if (!resolvedSequenceId) {
           return validationError(
-            `Sequence ${normalizedSequenceName || normalizedSequenceId} not found. Run list_sequences to confirm the exact ID or name.`,
+            normalizedSequenceId
+              ? "sequenceId must be the non-empty id returned by list_sequences"
+              : `Sequence ${normalizedSequenceName} not found. Run list_sequences and use the returned id for create_sequence_email.`,
           );
         }
 
@@ -1058,7 +1104,7 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
         const authHeader = Buffer.from(`${publishableKey}:${secretKey}`).toString("base64");
 
         const response = await fetch(
-          `${baseUrl}/fetch/sequences/${resolvedSequenceId}/emails/templates`,
+          `${baseUrl}/fetch/sequences/${encodeURIComponent(resolvedSequenceId)}/emails/templates`,
           {
             method: "POST",
             headers: {
