@@ -1,21 +1,20 @@
 export type BentoSequence = {
-  id: string;
+  id?: string;
+  prefix_id?: string;
   attributes?: {
+    id?: string;
+    prefix_id?: string;
     name?: string;
   };
 };
 
-type GetSequences = (params: { page: number }) => Promise<
-  BentoSequence[] | null | undefined
->;
+type GetSequences = () => Promise<BentoSequence[] | null | undefined>;
 
 type ResolveSequenceIdInput = {
   sequenceId?: string;
   sequenceName?: string;
   getSequences: GetSequences;
 };
-
-const MAX_SEQUENCE_PAGES = 100;
 
 function normalizeName(value: string | undefined): string | null {
   const trimmed = value?.trim();
@@ -24,6 +23,31 @@ function normalizeName(value: string | undefined): string | null {
   }
 
   return trimmed.toLowerCase();
+}
+
+export function isSequenceId(value: string | undefined): boolean {
+  const trimmed = value?.trim();
+  return Boolean(trimmed);
+}
+
+export function getSequenceId(sequence: BentoSequence): string | null {
+  const candidates = [
+    sequence.id,
+    sequence.attributes?.id,
+    sequence.prefix_id,
+    sequence.attributes?.prefix_id,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+
+  return null;
 }
 
 export async function resolveSequenceId({
@@ -41,24 +65,19 @@ export async function resolveSequenceId({
     return null;
   }
 
-  let page = 1;
-  while (page <= MAX_SEQUENCE_PAGES) {
-    const sequences = await getSequences({ page });
-    if (!sequences || sequences.length === 0) {
-      return null;
-    }
-
-    const match = sequences.find(
-      (sequence) =>
-        normalizeName(sequence.attributes?.name) === normalizedSequenceName,
-    );
-
-    if (match) {
-      return match.id;
-    }
-
-    page += 1;
+  const sequences = await getSequences();
+  if (!sequences || sequences.length === 0) {
+    return null;
   }
 
-  return null;
+  const match = sequences.find(
+    (sequence) =>
+      normalizeName(sequence.attributes?.name) === normalizedSequenceName,
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  return getSequenceId(match);
 }
