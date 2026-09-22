@@ -129,6 +129,14 @@
       "description": "List workflows and their email templates."
     },
     {
+      "name": "get_workflow",
+      "description": "Get a workflow's triggers, nodes, branches, and linked emails."
+    },
+    {
+      "name": "get_workflow_stats",
+      "description": "Per-node entered, sent, opened, clicked, unsubscribe, and conversion stats for a workflow over a time window."
+    },
+    {
       "name": "list_sequences",
       "description": "List email sequences and their templates."
     },

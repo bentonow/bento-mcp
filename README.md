@@ -132,63 +132,66 @@ Add to your Cursor MCP settings (`~/.cursor/mcp.json`):
 
 | Tool | Description |
 |------|-------------|
-| `bento_get_subscriber` | Look up subscriber details by email or UUID |
-| `bento_batch_import_subscribers` | Import or update up to 1000 subscribers with custom fields and tags |
+| `get_subscriber` | Look up subscriber details by email or UUID |
+| `batch_import_subscribers` | Import or update up to 1000 subscribers with custom fields and tags |
 
 ### Tags
 
 | Tool | Description |
 |------|-------------|
-| `bento_list_tags` | List all tags in your account |
-| `bento_create_tag` | Create a new tag |
+| `list_tags` | List all tags in your account |
+| `create_tag` | Create a new tag |
 
 ### Fields
 
 | Tool | Description |
 |------|-------------|
-| `bento_list_fields` | List all custom fields |
-| `bento_create_field` | Create a new custom field |
+| `list_fields` | List all custom fields |
+| `create_field` | Create a new custom field |
 
 ### Events
 
 | Tool | Description |
 |------|-------------|
-| `bento_track_event` | Track a custom event for a subscriber (can trigger automations) |
+| `track_event` | Track a custom event for a subscriber (can trigger automations) |
 
 ### Statistics
 
 | Tool | Description |
 |------|-------------|
-| `bento_get_site_stats` | Get site statistics including subscriber and broadcast counts |
-| `bento_get_ads_stats` | Get ads attribution stats by source, campaign, medium, content, or ad |
+| `get_site_stats` | Get site statistics including subscriber and broadcast counts |
+| `get_ads_stats` | Get ads attribution stats by source, campaign, medium, content, or ad |
 
 ### Broadcasts
 
 | Tool | Description |
 |------|-------------|
-| `bento_list_broadcasts` | List all broadcasts/campaigns |
-| `bento_create_broadcast` | Create a draft broadcast |
+| `list_broadcasts` | List all broadcasts/campaigns |
+| `create_broadcast` | Create a draft broadcast |
 
 ### Automations
 
 | Tool | Description |
 |------|-------------|
-| `bento_list_automations` | List sequences and/or workflows with their templates (supports separate pagination for each type) |
-| `bento_list_workflows` | List workflows with their embedded email templates and stats |
+| `list_automations` | List sequences and/or workflows with their templates (supports separate pagination for each type) |
+| `list_workflows` | List workflows with their embedded email templates and stats |
+| `get_workflow` | Get a workflow's triggers, nodes, branches, and linked emails |
+| `get_workflow_stats` | Per-node entered, sent, opened, clicked, unsubscribe, and conversion stats for a workflow over a time window |
 
 ### Sequences
 
 | Tool | Description |
 |------|-------------|
-| `bento_list_sequences` | List all email sequences with their email templates (supports pagination) |
-| `bento_create_sequence_email` | Create a new email template in a sequence (accepts sequence ID or exact name) with optional delay settings |
+| `list_sequences` | List all email sequences with their email templates (supports pagination) |
+| `create_sequence_email` | Create a new email template in a sequence (accepts sequence ID or exact name) with optional delay settings |
+| `update_sequence_email` | Update a sequence email template by template ID |
 
 ### Email Templates
 
 | Tool | Description |
 |------|-------------|
-| `bento_get_email_template` | Get email template content by ID |
-| `bento_update_email_template` | Update email template subject and/or content |
+| `get_email_template` | Get email template content by ID |
+| `update_email_template` | Update email template subject and/or content |
 
 ## Example Prompts
 
@@ -204,6 +207,7 @@ Once configured, you can ask your AI assistant things like:
 - "Create a new broadcast for the spring sale"
 - "List all my email sequences"
 - "Show me my workflows and highlight the email templates"
+- "Show me my onboarding workflow and which emails in it get the most clicks"
 - "Create a welcome email in sequence abc123 that sends after 2 days"
 - "Add a follow-up email to my onboarding sequence with a 1 week delay"
 - "Track a 'feature_used' event for user@example.com"
