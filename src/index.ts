@@ -7,7 +7,9 @@ import { Analytics } from "@bentonow/bento-node-sdk";
 import { createRequire } from "node:module";
 import { runSetup, parseSetupArgs } from "./setup/index.js";
 import { normalizeAutomationList } from "./automation-output.js";
+import { fetchBentoJson, getApiBaseUrl } from "./bento-fetch.js";
 import { resolveSequenceId } from "./sequence-resolution.js";
+import { workflowStatsQuery } from "./workflow-stats-query.js";
 
 // Read version from package.json
 const require = createRequire(import.meta.url);
@@ -55,31 +57,6 @@ function startMcpServer() {
   const MAX_TEMPLATE_HTML_BYTES = 524_288;
   const MAX_BROADCAST_CONTENT_BYTES = 524_288;
   const MAX_BATCH_SIZE_PER_HOUR = 250_000;
-
-  function getApiBaseUrl(): string {
-    const rawBaseUrl =
-      process.env.BENTO_API_BASE_URL || "https://app.bentonow.com/api/v1";
-
-    try {
-      const parsed = new URL(rawBaseUrl);
-      const isLocalHost =
-        parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-      const isBentoHost =
-        parsed.hostname.endsWith(".bentonow.com") || parsed.hostname === "bentonow.com";
-      const hasAllowedProtocol =
-        parsed.protocol === "https:" || (isLocalHost && parsed.protocol === "http:");
-
-      if (!hasAllowedProtocol || (!isLocalHost && !isBentoHost)) {
-        throw new Error("Invalid BENTO_API_BASE_URL host");
-      }
-
-      return parsed.toString().replace(/\/$/, "");
-    } catch {
-      throw new Error(
-        "Invalid BENTO_API_BASE_URL. Use https://*.bentonow.com (or http://localhost for local development).",
-      );
-    }
-  }
 
   // Initialize Bento client from environment variables
   function getBentoClient(): Analytics {
@@ -755,34 +732,15 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
     },
     async ({ page, status }) => {
       try {
-        const publishableKey = process.env.BENTO_PUBLISHABLE_KEY as string;
-        const secretKey = process.env.BENTO_SECRET_KEY as string;
-        const siteUuid = process.env.BENTO_SITE_UUID as string;
-        const baseUrl = getApiBaseUrl();
-        const authHeader = Buffer.from(`${publishableKey}:${secretKey}`).toString("base64");
-        const queryParameters = new URLSearchParams({ site_uuid: siteUuid });
-
+        const query: Record<string, string> = {};
         if (page !== undefined) {
-          queryParameters.set("page", String(page));
+          query.page = String(page);
         }
         if (status) {
-          queryParameters.set("status", status);
+          query.status = status;
         }
 
-        const response = await fetch(`${baseUrl}/fetch/broadcasts?${queryParameters.toString()}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Basic ${authHeader}`,
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          const message = await response.text();
-          throw new Error(`[${response.status}] - ${message || response.statusText}`);
-        }
-
-        const broadcasts = (await response.json()) as unknown;
+        const broadcasts = await fetchBentoJson("/fetch/broadcasts", query);
         const context = [
           "Broadcasts in your Bento account",
           status ? `status: ${status}` : null,
@@ -951,6 +909,76 @@ Returns signups, customers, revenue in cents, chart data, and a ranked breakdown
         return successResponse(workflows, context);
       } catch (error) {
         return errorResponse(error, "list workflows");
+      }
+    },
+  );
+
+  server.tool(
+    "get_workflow",
+    "Get one workflow's structure: its triggers, nodes (emails, delays, branches, tags, webhooks, etc.) and how they connect. Each node has an id, type, name, transitions (the next node ids; true/false branches use keys 'true' and 'false'), and safe config. Email nodes include email_template { id, subject }; use get_email_template for the full content. Use get_workflow_stats for per-node performance. Get workflow ids from list_workflows.",
+    {
+      workflow_id: z
+        .string()
+        .min(1)
+        .describe("Workflow ID from list_workflows, e.g. flow_abc123"),
+    },
+    async ({ workflow_id }) => {
+      try {
+        const data = await fetchBentoJson(
+          `/fetch/workflows/${encodeURIComponent(workflow_id)}`,
+        );
+        return successResponse(data, `Workflow ${workflow_id}`);
+      } catch (error) {
+        return errorResponse(error, `get workflow ${workflow_id}`);
+      }
+    },
+  );
+
+  server.tool(
+    "get_workflow_stats",
+    "Per-node performance for a workflow over a time window (default last 30 days, max 366). For every node: how many times it was entered. Email nodes add sent, opened, clicked, open_rate and click_rate (percentages), unsubscribes, and unique_events (attributed conversions, the Email Viewer's Sales column). Sequence nodes add the same counts summed across the sequence's emails (skipped when the sequence has more than 20 emails). The `nodes` object is keyed by node id; call get_workflow first to map ids to step names and order. Results are cached for about 10 minutes.",
+    {
+      workflow_id: z
+        .string()
+        .min(1)
+        .describe("Workflow ID from list_workflows, e.g. flow_abc123"),
+      days: z
+        .number()
+        .int()
+        .min(1)
+        .max(366)
+        .optional()
+        .describe(
+          "Rolling window in days (default 30). Ignored when start_date/end_date are given",
+        ),
+      start_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe("YYYY-MM-DD"),
+      end_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe("YYYY-MM-DD"),
+    },
+    async ({ workflow_id, days, start_date, end_date }) => {
+      const window = workflowStatsQuery({ days, start_date, end_date });
+      if (!window.ok) {
+        return validationError(window.error);
+      }
+
+      try {
+        const data = await fetchBentoJson(
+          `/fetch/workflows/${encodeURIComponent(workflow_id)}/stats`,
+          window.query,
+        );
+        return successResponse(
+          data,
+          `Workflow ${workflow_id} stats (${window.label})`,
+        );
+      } catch (error) {
+        return errorResponse(error, `get workflow ${workflow_id} stats`);
       }
     },
   );
